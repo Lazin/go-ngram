@@ -3,7 +3,6 @@ package ngram
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/cespare/go-smaz"
 )
 
@@ -18,7 +17,6 @@ type stringPool struct {
 }
 
 func (pool *stringPool) Append(s string) (int, error) {
-	fmt.Println("Append ", s)
 	begin := pool.buffer.Len()
 	bstr := []byte(s)
 	bstr = smaz.Compress(bstr)
@@ -26,17 +24,13 @@ func (pool *stringPool) Append(s string) (int, error) {
 	if error != nil {
 		return 0, error
 	}
-	end := pool.buffer.Len()
-	fmt.Println("begin: ", begin, "end: ", end, "n: ", n)
+	end := begin + n
 	ixitem := len(pool.items)
 	pool.items = append(pool.items, region{begin: begin, end: end})
-	fmt.Println("buffer state: ", pool.buffer)
-	fmt.Println("items state: ", pool.items)
 	return ixitem, nil
 }
 
 func (pool *stringPool) ReadAt(index int) (string, error) {
-	fmt.Println("ReadAt ", index)
 	if index < 0 || index >= len(pool.items) {
 		return "", errors.New("Index out of range")
 	}
