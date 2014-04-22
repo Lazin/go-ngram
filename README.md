@@ -17,7 +17,7 @@ index := ngram.NewNgramIndex(3, '$')     // first argument is gram size
                                          // second - padding charcter
 tokenId, err := index.Add("hello")       // tokenId is unique token Id. 
                                          // We can get original string using it
-str, err := index.GetString(tokenId)     // str == _"hello world"_
+str, err := index.GetString(tokenId)     // str == "hello"
 tokenList, err := index.Search("world")  // tokenList is list of tokens with weights
 ```
 
