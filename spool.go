@@ -16,7 +16,7 @@ type stringPool struct {
 	buffer bytes.Buffer
 }
 
-func (pool *stringPool) Append(s string) (int, error) {
+func (pool *stringPool) Append(s string) (TokenId, error) {
 	begin := pool.buffer.Len()
 	bstr := []byte(s)
 	bstr = smaz.Compress(bstr)
@@ -25,16 +25,16 @@ func (pool *stringPool) Append(s string) (int, error) {
 		return 0, error
 	}
 	end := begin + n
-	ixitem := len(pool.items)
+	ixitem := TokenId(len(pool.items))
 	pool.items = append(pool.items, region{begin: begin, end: end})
 	return ixitem, nil
 }
 
-func (pool *stringPool) ReadAt(index int) (string, error) {
-	if index < 0 || index >= len(pool.items) {
+func (pool *stringPool) ReadAt(index TokenId) (string, error) {
+	if index < TokenId(0) || index >= TokenId(len(pool.items)) {
 		return "", errors.New("Index out of range")
 	}
-	item := pool.items[index]
+	item := pool.items[int(index)]
 	compressed := pool.buffer.Bytes()[item.begin:item.end]
 	decompressed, error := smaz.Decompress(compressed)
 	if error != nil {

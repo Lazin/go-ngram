@@ -2,7 +2,6 @@ package ngram
 
 import (
 	"errors"
-	"fmt"
 	"github.com/reusee/mmh3"
 )
 
@@ -12,8 +11,10 @@ const defaultPad = "$"
 
 const defaultN = 3
 
+type TokenId int
+
 type nGramValue struct {
-	items map[int]int
+	items map[TokenId]int
 }
 
 type NGramIndex struct {
@@ -21,6 +22,13 @@ type NGramIndex struct {
 	n     int
 	spool stringPool
 	index map[uint32]*nGramValue
+}
+
+type SearchResult struct {
+	text       string
+	tokenId    TokenId
+	similarity float32
+	error      error
 }
 
 func (ngram *NGramIndex) split_input(str string) ([]uint32, error) {
@@ -67,67 +75,103 @@ func (ngram *NGramIndex) init() {
 	}
 }
 
-func NewNGramIndex(n int, pad rune) (*NGramIndex, error) {
-	if n < 2 || n > maxN {
-		return nil, errors.New("Bad 'n' value for n-gram index")
-	}
+type padArgTrait struct {
+	pad rune
+}
+
+type nArgTrait struct {
+	n int
+}
+
+func SetPad(c rune) padArgTrait {
+	return padArgTrait{pad: c}
+}
+
+func SetN(n int) nArgTrait {
+	return nArgTrait{n: n}
+}
+
+func NewNGramIndex(args ...interface{}) (*NGramIndex, error) {
 	ngram := new(NGramIndex)
-	ngram.n = n
-	ngram.pad = string(pad)
+	for _, arg := range args {
+		switch i := arg.(type) {
+		case padArgTrait:
+			ngram.pad = string(i.pad)
+		case nArgTrait:
+			if i.n < 2 || i.n > maxN {
+				return nil, errors.New("Bad 'n' value for n-gram index")
+			}
+			ngram.n = i.n
+		default:
+			return nil, errors.New("Invalid argument")
+		}
+	}
 	ngram.init()
 	return ngram, nil
 }
 
-func (ngram *NGramIndex) Add(input string) error {
+func (ngram *NGramIndex) Add(input string) (TokenId, error) {
 	if ngram.index == nil {
-		return errors.New("NGram index not initialized")
+		ngram.init()
 	}
 	results, error := ngram.split_input(input)
 	if error != nil {
-		return error
+		return -1, error
+	}
+	ixstr, error := ngram.spool.Append(input)
+	if error != nil {
+		return -1, error
 	}
 	for _, hash := range results {
-		fmt.Println("hash value: ", hash)
 		var val *nGramValue = nil
 		var ok bool
-		if val, ok = ngram.index[hash]; ok {
-			fmt.Println("val found")
-		} else {
+		if val, ok = ngram.index[hash]; !ok {
 			val = new(nGramValue)
-			val.items = make(map[int]int)
+			val.items = make(map[TokenId]int)
 			ngram.index[hash] = val
 		}
 		// insert string and counter
-		ixstr, error := ngram.spool.Append(input)
-		if error != nil {
-			return error
-		}
 		if count, ok := val.items[ixstr]; ok {
 			val.items[ixstr] = count + 1
 		} else {
 			val.items[ixstr] = 1
 		}
 	}
-	return nil
+	return ixstr, nil
 }
 
-func (ngram *NGramIndex) Search(input string) ([]string, error) {
+func (ngram *NGramIndex) GetString(id TokenId) (string, error) {
+	return ngram.spool.ReadAt(id)
+}
+
+// Map matched tokens to the number of ngrams, shared with input string
+func (ngram *NGramIndex) count_ngrams(input_ngrams []uint32) map[TokenId]int {
+	panic("Not implemented")
+}
+
+// Return best match
+func (ngram *NGramIndex) Find(input string) (TokenId, error) {
 	if ngram.index == nil {
-		return nil, errors.New("NGram index not initialized")
+		ngram.init()
+	}
+	panic("Not implemented")
+}
+
+func (ngram *NGramIndex) Search(input string) ([]SearchResult, error) {
+	if ngram.index == nil {
+		ngram.init()
 	}
 	results, error := ngram.split_input(input)
 	if error != nil {
 		return nil, error
 	}
-	output := make([]string, 0)
+	output := make([]SearchResult, 0)
 	for _, hash := range results {
 		if val := ngram.index[hash]; val != nil {
-			for key, _ := range val.items {
-				item, error := ngram.spool.ReadAt(key)
-				if error != nil {
-					return nil, error
-				}
-				output = append(output, item)
+			for id, _ := range val.items {
+				text, err := ngram.spool.ReadAt(id)
+				res := SearchResult{text: text, error: err, similarity: 0.0, tokenId: id}
+				output = append(output, res)
 			}
 		}
 	}
