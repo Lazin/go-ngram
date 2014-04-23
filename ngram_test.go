@@ -41,7 +41,7 @@ func Test_searching(t *testing.T) {
 	if results[0].Similarity != 1.0 && results[0].TokenId != 0 {
 		t.Error("Bad result")
 	}
-	results, error = index.Search("12345", 0.0)
+	results, error = index.Search("12345")
 	if len(results) != 0 {
 		t.Error("Invalid value found")
 	}

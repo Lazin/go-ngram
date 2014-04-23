@@ -157,12 +157,18 @@ func (ngram *NGramIndex) count_ngrams(input_ngrams []uint32) map[TokenId]int {
 	return counters
 }
 
-func (ngram *NGramIndex) Search(input string, threshold float32) ([]SearchResult, error) {
+func (ngram *NGramIndex) Search(input string, threshold ...float32) ([]SearchResult, error) {
 	if ngram.index == nil {
 		ngram.init()
 	}
-	if threshold < 0.0 || threshold > 1.0 {
-		return nil, errors.New("Threshold must be in range (0, 1)")
+	var threshold_val float32
+	if len(threshold) == 1 {
+		threshold_val = threshold[0]
+		if threshold_val < 0.0 || threshold_val > 1.0 {
+			return nil, errors.New("Threshold must be in range (0, 1)")
+		}
+	} else if len(threshold) > 1 {
+		return nil, errors.New("Too many arguments")
 	}
 	input_ngrams, error := ngram.split_input(input)
 	if error != nil {
@@ -172,7 +178,7 @@ func (ngram *NGramIndex) Search(input string, threshold float32) ([]SearchResult
 	token_count := ngram.count_ngrams(input_ngrams)
 	for token, count := range token_count {
 		sim := float32(count) / float32(len(input_ngrams))
-		if sim >= threshold {
+		if sim >= threshold_val {
 			res := SearchResult{Similarity: sim, TokenId: token}
 			output = append(output, res)
 		}
