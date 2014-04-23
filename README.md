@@ -13,11 +13,9 @@ N-Gram index
 ## Usage
 
 ```go
-index := ngram.NewNgramIndex(3, '$')     // first argument is gram size
-                                         // second - padding charcter
-tokenId, err := index.Add("hello")       // tokenId is unique token Id. 
-                                         // We can get original string using it
-str, err := index.GetString(tokenId)     // str == "hello"
-tokenList, err := index.Search("world")  // tokenList is list of tokens with weights
+index := ngram.NewNgramIndex(ngram.SetN(3))
+tokenId, err := index.Add("hello") 
+str, err := index.GetString(tokenId)  // str == "hello"
+resultsList, err := index.Search("world")
 ```
 
