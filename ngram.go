@@ -15,6 +15,7 @@ type TokenId int
 
 type nGramValue struct {
 	items map[TokenId]int
+	count int64
 }
 
 type NGramIndex struct {
@@ -25,10 +26,8 @@ type NGramIndex struct {
 }
 
 type SearchResult struct {
-	text       string
-	tokenId    TokenId
-	similarity float32
-	error      error
+	TokenId    TokenId
+	Similarity float32
 }
 
 func (ngram *NGramIndex) split_input(str string) ([]uint32, error) {
@@ -130,6 +129,7 @@ func (ngram *NGramIndex) Add(input string) (TokenId, error) {
 			val.items = make(map[TokenId]int)
 			ngram.index[hash] = val
 		}
+		val.count++
 		// insert string and counter
 		if count, ok := val.items[ixstr]; ok {
 			val.items[ixstr] = count + 1
@@ -146,33 +146,35 @@ func (ngram *NGramIndex) GetString(id TokenId) (string, error) {
 
 // Map matched tokens to the number of ngrams, shared with input string
 func (ngram *NGramIndex) count_ngrams(input_ngrams []uint32) map[TokenId]int {
-	panic("Not implemented")
+	counters := make(map[TokenId]int)
+	for _, ngram_hash := range input_ngrams {
+		if tokmap, ok := ngram.index[ngram_hash]; ok {
+			for tok, _ := range tokmap.items {
+				counters[tok] += 1
+			}
+		}
+	}
+	return counters
 }
 
-// Return best match
-func (ngram *NGramIndex) Find(input string) (TokenId, error) {
+func (ngram *NGramIndex) Search(input string, threshold float32) ([]SearchResult, error) {
 	if ngram.index == nil {
 		ngram.init()
 	}
-	panic("Not implemented")
-}
-
-func (ngram *NGramIndex) Search(input string) ([]SearchResult, error) {
-	if ngram.index == nil {
-		ngram.init()
+	if threshold < 0.0 || threshold > 1.0 {
+		return nil, errors.New("Threshold must be in range (0, 1)")
 	}
-	results, error := ngram.split_input(input)
+	input_ngrams, error := ngram.split_input(input)
 	if error != nil {
 		return nil, error
 	}
 	output := make([]SearchResult, 0)
-	for _, hash := range results {
-		if val := ngram.index[hash]; val != nil {
-			for id, _ := range val.items {
-				text, err := ngram.spool.ReadAt(id)
-				res := SearchResult{text: text, error: err, similarity: 0.0, tokenId: id}
-				output = append(output, res)
-			}
+	token_count := ngram.count_ngrams(input_ngrams)
+	for token, count := range token_count {
+		sim := float32(count) / float32(len(input_ngrams))
+		if sim >= threshold {
+			res := SearchResult{Similarity: sim, TokenId: token}
+			output = append(output, res)
 		}
 	}
 	return output, nil

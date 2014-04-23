@@ -1,6 +1,8 @@
 package ngram
 
-import "testing"
+import (
+	"testing"
+)
 
 func Test_index_basics(t *testing.T) {
 	var ng NGramIndex
@@ -15,6 +17,33 @@ func Test_index_basics(t *testing.T) {
 	}
 	if strval != "hello" {
 		t.Error("Can't read string from index")
+	}
+}
+
+func Test_searching(t *testing.T) {
+	var ng NGramIndex
+	index := &ng
+	_, error := index.Add("hello")
+	if error != nil {
+		t.Error(error)
+	}
+	_, error = index.Add("world")
+	if error != nil {
+		t.Error(error)
+	}
+	results, error := index.Search("hello", 0.0)
+	if error != nil {
+		t.Error(error)
+	}
+	if len(results) != 1 {
+		t.Error("len(results) != 1")
+	}
+	if results[0].Similarity != 1.0 && results[0].TokenId != 0 {
+		t.Error("Bad result")
+	}
+	results, error = index.Search("12345", 0.0)
+	if len(results) != 0 {
+		t.Error("Invalid value found")
 	}
 }
 
