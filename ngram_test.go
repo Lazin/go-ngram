@@ -1,6 +1,7 @@
 package ngram
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -80,5 +81,38 @@ func Test_index_initialization(t *testing.T) {
 	index, error = NewNGramIndex(SetN(maxN + 1))
 	if error == nil {
 		t.Error("Error not set (2)")
+	}
+}
+
+func Benchmark_add(b *testing.B) {
+	b.StopTimer()
+	// init
+	index, _ := NewNGramIndex()
+	var arr []string
+	for i := 0; i < 10000; i++ {
+		str := fmt.Sprintf("%x", i)
+		arr = append(arr, str)
+	}
+	b.StartTimer()
+	for _, hexstr := range arr {
+		index.Add(hexstr)
+	}
+}
+
+func Benchmark_search(b *testing.B) {
+	b.StopTimer()
+	// init
+	index, _ := NewNGramIndex()
+	var arr []string
+	for i := 0; i < 10000; i++ {
+		str := fmt.Sprintf("%000x", i)
+		arr = append(arr, str)
+	}
+	for _, hexstr := range arr {
+		index.Add(hexstr)
+	}
+	b.StartTimer()
+	for i := 0; i < 10000; i += 4 {
+		index.Search(arr[i], 0.5)
 	}
 }

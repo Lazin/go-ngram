@@ -3,6 +3,7 @@ package ngram
 import (
 	"errors"
 	"github.com/reusee/mmh3"
+	"math"
 )
 
 const maxN = 8
@@ -23,11 +24,12 @@ type NGramIndex struct {
 	n     int
 	spool stringPool
 	index map[uint32]*nGramValue
+	warp  float64
 }
 
 type SearchResult struct {
 	TokenId    TokenId
-	Similarity float32
+	Similarity float64
 }
 
 func (ngram *NGramIndex) split_input(str string) ([]uint32, error) {
@@ -72,6 +74,9 @@ func (ngram *NGramIndex) init() {
 	if ngram.n == 0 {
 		ngram.n = defaultN
 	}
+	if ngram.warp == 0.0 {
+		ngram.warp = 1.0
+	}
 }
 
 type padArgTrait struct {
@@ -82,12 +87,20 @@ type nArgTrait struct {
 	n int
 }
 
+type warpArgTrait struct {
+	warp float64
+}
+
 func SetPad(c rune) padArgTrait {
 	return padArgTrait{pad: c}
 }
 
 func SetN(n int) nArgTrait {
 	return nArgTrait{n: n}
+}
+
+func SetWarp(warp float64) warpArgTrait {
+	return warpArgTrait{warp: warp}
 }
 
 func NewNGramIndex(args ...interface{}) (*NGramIndex, error) {
@@ -101,6 +114,10 @@ func NewNGramIndex(args ...interface{}) (*NGramIndex, error) {
 				return nil, errors.New("Bad 'n' value for n-gram index")
 			}
 			ngram.n = i.n
+		case warpArgTrait:
+			if i.warp < 0.0 || i.warp > 1.0 {
+				return nil, errors.New("Bad 'warp' value for n-gram index")
+			}
 		default:
 			return nil, errors.New("Invalid argument")
 		}
@@ -157,11 +174,11 @@ func (ngram *NGramIndex) count_ngrams(input_ngrams []uint32) map[TokenId]int {
 	return counters
 }
 
-func (ngram *NGramIndex) Search(input string, threshold ...float32) ([]SearchResult, error) {
+func (ngram *NGramIndex) Search(input string, threshold ...float64) ([]SearchResult, error) {
 	if ngram.index == nil {
 		ngram.init()
 	}
-	var threshold_val float32
+	var threshold_val float64
 	if len(threshold) == 1 {
 		threshold_val = threshold[0]
 		if threshold_val < 0.0 || threshold_val > 1.0 {
@@ -177,7 +194,16 @@ func (ngram *NGramIndex) Search(input string, threshold ...float32) ([]SearchRes
 	output := make([]SearchResult, 0)
 	token_count := ngram.count_ngrams(input_ngrams)
 	for token, count := range token_count {
-		sim := float32(count) / float32(len(input_ngrams))
+		var sim float64
+		allngrams := float64(len(input_ngrams))
+		matchngrams := float64(count)
+		if ngram.warp == 1.0 {
+			sim = matchngrams / allngrams
+		} else {
+			diffngrams := allngrams - matchngrams
+			sim = math.Pow(allngrams, ngram.warp) - math.Pow(diffngrams, ngram.warp)
+			sim /= math.Pow(allngrams, ngram.warp)
+		}
 		if sim >= threshold_val {
 			res := SearchResult{Similarity: sim, TokenId: token}
 			output = append(output, res)
