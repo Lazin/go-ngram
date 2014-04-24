@@ -46,6 +46,13 @@ func Test_searching(t *testing.T) {
 	if len(results) != 0 {
 		t.Error("Invalid value found")
 	}
+	result, error := index.BestMatch("hel")
+	if error != nil {
+		t.Error(error)
+	}
+	if result.TokenId != 0 {
+		t.Error("BestMatch doesn't work as expected")
+	}
 }
 
 func Test_index_initialization(t *testing.T) {

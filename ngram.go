@@ -184,24 +184,20 @@ func (ngram *NGramIndex) count_ngrams(input_ngrams []uint32) map[TokenId]int {
 	return counters
 }
 
-// Search for matches between query string (input) and indexed strings.
-// First parameter - threshold is optional and can be used to set minimal similarity
-// between input string and matching string. You can pass only one threshold value.
-// Results is an unordered array of 'SearchResult' structs. This struct contains similarity
-// value (float32 value from threshold to 1.0) and token-id.
-func (ngram *NGramIndex) Search(input string, threshold ...float64) ([]SearchResult, error) {
-	if ngram.index == nil {
-		ngram.init()
-	}
-	var threshold_val float64
-	if len(threshold) == 1 {
-		threshold_val = threshold[0]
-		if threshold_val < 0.0 || threshold_val > 1.0 {
-			return nil, errors.New("Threshold must be in range (0, 1)")
+func validate_threshold_values(thresholds []float64) (float64, error) {
+	var tval float64
+	if len(thresholds) == 1 {
+		tval = thresholds[0]
+		if tval < 0.0 || tval > 1.0 {
+			return 0.0, errors.New("Threshold must be in range (0, 1)")
 		}
-	} else if len(threshold) > 1 {
-		return nil, errors.New("Too many arguments")
+	} else if len(thresholds) > 1 {
+		return 0.0, errors.New("Too many arguments")
 	}
+	return tval, nil
+}
+
+func (ngram *NGramIndex) match(input string, tval float64) ([]SearchResult, error) {
 	input_ngrams, error := ngram.split_input(input)
 	if error != nil {
 		return nil, error
@@ -219,10 +215,52 @@ func (ngram *NGramIndex) Search(input string, threshold ...float64) ([]SearchRes
 			sim = math.Pow(allngrams, ngram.warp) - math.Pow(diffngrams, ngram.warp)
 			sim /= math.Pow(allngrams, ngram.warp)
 		}
-		if sim >= threshold_val {
+		if sim >= tval {
 			res := SearchResult{Similarity: sim, TokenId: token}
 			output = append(output, res)
 		}
 	}
 	return output, nil
+}
+
+// Search for matches between query string (input) and indexed strings.
+// First parameter - threshold is optional and can be used to set minimal similarity
+// between input string and matching string. You can pass only one threshold value.
+// Results is an unordered array of 'SearchResult' structs. This struct contains similarity
+// value (float32 value from threshold to 1.0) and token-id.
+func (ngram *NGramIndex) Search(input string, threshold ...float64) ([]SearchResult, error) {
+	if ngram.index == nil {
+		ngram.init()
+	}
+	tval, error := validate_threshold_values(threshold)
+	if error != nil {
+		return nil, error
+	}
+	return ngram.match(input, tval)
+}
+
+func (ngram *NGramIndex) BestMatch(input string, threshold ...float64) (*SearchResult, error) {
+	if ngram.index == nil {
+		ngram.init()
+	}
+	tval, error := validate_threshold_values(threshold)
+	if error != nil {
+		return nil, error
+	}
+	variants, error := ngram.match(input, tval)
+	if error != nil {
+		return nil, error
+	}
+	if len(variants) == 0 {
+		return nil, errors.New("No matches found")
+	}
+	var result SearchResult
+	maxsim := -1.0
+	for _, val := range variants {
+		if val.Similarity > maxsim {
+			maxsim = val.Similarity
+			result = val
+		}
+	}
+	return &result, nil
 }
