@@ -19,3 +19,7 @@ str, err := index.GetString(tokenId)  // str == "hello"
 resultsList, err := index.Search("world")
 ```
 
+## TODO:
+
+* Smoothing functions (Laplace etc)
+

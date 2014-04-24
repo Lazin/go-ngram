@@ -19,6 +19,7 @@ type nGramValue struct {
 	count int64
 }
 
+// N-gram index, can be initialized by default (zeroed) or created with "NewNgramIndex"
 type NGramIndex struct {
 	pad   string
 	n     int
@@ -27,6 +28,7 @@ type NGramIndex struct {
 	warp  float64
 }
 
+// Search result, contains token id and similarity - value in range from 0.0 to 1.0
 type SearchResult struct {
 	TokenId    TokenId
 	Similarity float64
@@ -91,18 +93,23 @@ type warpArgTrait struct {
 	warp float64
 }
 
+// This function must be used to pass padding character to NGramIndex c-tor
 func SetPad(c rune) padArgTrait {
 	return padArgTrait{pad: c}
 }
 
+// This function must be used to pass N (gram size) to NGramIndex c-tor
 func SetN(n int) nArgTrait {
 	return nArgTrait{n: n}
 }
 
+// This function must be used to pass warp to NGramIndex c-tor
 func SetWarp(warp float64) warpArgTrait {
 	return warpArgTrait{warp: warp}
 }
 
+// N-gram index c-tor. In most cases must be used withot parameters.
+// You can pass parameters to c-tor using functions SetPad and SetN.
 func NewNGramIndex(args ...interface{}) (*NGramIndex, error) {
 	ngram := new(NGramIndex)
 	for _, arg := range args {
@@ -126,6 +133,8 @@ func NewNGramIndex(args ...interface{}) (*NGramIndex, error) {
 	return ngram, nil
 }
 
+// Add token to index. Function returns token id, this id can be converted
+// to string with function "GetString".
 func (ngram *NGramIndex) Add(input string) (TokenId, error) {
 	if ngram.index == nil {
 		ngram.init()
@@ -157,6 +166,7 @@ func (ngram *NGramIndex) Add(input string) (TokenId, error) {
 	return ixstr, nil
 }
 
+// Converts token-id to string.
 func (ngram *NGramIndex) GetString(id TokenId) (string, error) {
 	return ngram.spool.ReadAt(id)
 }
@@ -174,6 +184,11 @@ func (ngram *NGramIndex) count_ngrams(input_ngrams []uint32) map[TokenId]int {
 	return counters
 }
 
+// Search for matches between query string (input) and indexed strings.
+// First parameter - threshold is optional and can be used to set minimal similarity
+// between input string and matching string. You can pass only one threshold value.
+// Results is an unordered array of 'SearchResult' structs. This struct contains similarity
+// value (float32 value from threshold to 1.0) and token-id.
 func (ngram *NGramIndex) Search(input string, threshold ...float64) ([]SearchResult, error) {
 	if ngram.index == nil {
 		ngram.init()
