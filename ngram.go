@@ -148,7 +148,7 @@ func (ngram *NGramIndex) Add(input string) (TokenId, error) {
 	}
 	for _, hash := range results {
 		var ok bool
-		if val, ok = ngram.index[hash]; !ok {
+		if val, ok := ngram.index[hash]; !ok {
 			ngram.index[hash] = nGramValue{items: make(map[TokenId]int)}
 		}
 		// insert string and counter
