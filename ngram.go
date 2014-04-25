@@ -24,7 +24,7 @@ type NGramIndex struct {
 	pad   string
 	n     int
 	spool stringPool
-	index map[uint32]*nGramValue
+	index map[uint32]nGramValue
 	warp  float64
 }
 
@@ -69,7 +69,7 @@ func (ngram *NGramIndex) split_input(str string) ([]uint32, error) {
 }
 
 func (ngram *NGramIndex) init() {
-	ngram.index = make(map[uint32]*nGramValue)
+	ngram.index = make(map[uint32]nGramValue)
 	if ngram.pad == "" {
 		ngram.pad = defaultPad
 	}
@@ -148,20 +148,14 @@ func (ngram *NGramIndex) Add(input string) (TokenId, error) {
 		return -1, error
 	}
 	for _, hash := range results {
-		var val *nGramValue = nil
+		var val nGramValue
 		var ok bool
 		if val, ok = ngram.index[hash]; !ok {
-			val = new(nGramValue)
-			val.items = make(map[TokenId]int)
-			ngram.index[hash] = val
+			ngram.index[hash] = nGramValue{items: make(map[TokenId]int)}
 		}
 		val.count++
 		// insert string and counter
-		if count, ok := val.items[ixstr]; ok {
-			val.items[ixstr] = count + 1
-		} else {
-			val.items[ixstr] = 1
-		}
+        ngram.index[hash].items[ixstr]++
 	}
 	return ixstr, nil
 }
