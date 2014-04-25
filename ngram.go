@@ -16,7 +16,6 @@ type TokenId int
 
 type nGramValue struct {
 	items map[TokenId]int
-	count int64
 }
 
 // N-gram index, can be initialized by default (zeroed) or created with "NewNgramIndex"
@@ -148,14 +147,12 @@ func (ngram *NGramIndex) Add(input string) (TokenId, error) {
 		return -1, error
 	}
 	for _, hash := range results {
-		var val nGramValue
 		var ok bool
 		if val, ok = ngram.index[hash]; !ok {
 			ngram.index[hash] = nGramValue{items: make(map[TokenId]int)}
 		}
-		val.count++
 		// insert string and counter
-        ngram.index[hash].items[ixstr]++
+		ngram.index[hash].items[ixstr]++
 	}
 	return ixstr, nil
 }
