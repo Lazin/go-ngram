@@ -226,6 +226,7 @@ func (ngram *NGramIndex) Search(input string, threshold ...float64) ([]SearchRes
 	return ngram.match(input, tval)
 }
 
+// BestMatch is the same as Search except that it's returning only one best result instead of all.
 func (ngram *NGramIndex) BestMatch(input string, threshold ...float64) (*SearchResult, error) {
 	if ngram.index == nil {
 		ngram.init()
