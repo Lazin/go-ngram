@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_index_basics(t *testing.T) {
+func TestIndexBasics(t *testing.T) {
 	var ng NGramIndex
 	index := &ng
 	id, error := index.Add("hello")
@@ -21,7 +21,7 @@ func Test_index_basics(t *testing.T) {
 	}
 }
 
-func Test_searching(t *testing.T) {
+func TestSearching(t *testing.T) {
 	var ng NGramIndex
 	index := &ng
 	_, error := index.Add("hello")
@@ -55,7 +55,7 @@ func Test_searching(t *testing.T) {
 	}
 }
 
-func Test_index_initialization(t *testing.T) {
+func TestIndexInitialization(t *testing.T) {
 	index, error := NewNGramIndex()
 	if error != nil {
 		t.Error(error)
@@ -91,7 +91,7 @@ func Test_index_initialization(t *testing.T) {
 	}
 }
 
-func Benchmark_add(b *testing.B) {
+func BenchmarkAdd(b *testing.B) {
 	b.StopTimer()
 	// init
 	index, _ := NewNGramIndex()
@@ -106,7 +106,7 @@ func Benchmark_add(b *testing.B) {
 	}
 }
 
-func Benchmark_search(b *testing.B) {
+func BenchmarkSearch(b *testing.B) {
 	b.StopTimer()
 	// init
 	index, _ := NewNGramIndex()

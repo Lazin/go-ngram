@@ -12,7 +12,7 @@ const defaultPad = "$"
 
 const defaultN = 3
 
-// Token ID
+// TokenID is just id of the token
 type TokenID int
 
 type nGramValue map[TokenID]int
@@ -34,7 +34,7 @@ type SearchResult struct {
 
 func (ngram *NGramIndex) splitInput(str string) ([]uint32, error) {
 	if len(str) == 0 {
-		return nil, errors.New("Empty string")
+		return nil, errors.New("empty string")
 	}
 	pad := ngram.pad
 	n := ngram.n
@@ -43,7 +43,7 @@ func (ngram *NGramIndex) splitInput(str string) ([]uint32, error) {
 	counter := 0
 	results := make([]uint32, 0)
 
-	for index, _ := range input {
+	for index := range input {
 		counter++
 		if counter > n {
 			top := prevIndexes[(counter-n)%len(prevIndexes)]
@@ -116,15 +116,15 @@ func NewNGramIndex(args ...interface{}) (*NGramIndex, error) {
 			ngram.pad = string(i.pad)
 		case nArgTrait:
 			if i.n < 2 || i.n > maxN {
-				return nil, errors.New("Bad 'n' value for n-gram index")
+				return nil, errors.New("bad 'n' value for n-gram index")
 			}
 			ngram.n = i.n
 		case warpArgTrait:
 			if i.warp < 0.0 || i.warp > 1.0 {
-				return nil, errors.New("Bad 'warp' value for n-gram index")
+				return nil, errors.New("bad 'warp' value for n-gram index")
 			}
 		default:
-			return nil, errors.New("Invalid argument")
+			return nil, errors.New("invalid argument")
 		}
 	}
 	ngram.init()
@@ -155,17 +155,17 @@ func (ngram *NGramIndex) Add(input string) (TokenID, error) {
 	return ixstr, nil
 }
 
-// Converts token-id to string.
+// GetString converts token-id to string.
 func (ngram *NGramIndex) GetString(id TokenID) (string, error) {
 	return ngram.spool.ReadAt(id)
 }
 
 // countNgrams maps matched tokens to the number of ngrams, shared with input string
-func (ngram *NGramIndex) countNgrams(input_ngrams []uint32) map[TokenID]int {
+func (ngram *NGramIndex) countNgrams(inputNgrams []uint32) map[TokenID]int {
 	counters := make(map[TokenID]int)
-	for _, ngram_hash := range input_ngrams {
-		for tok, _ := range ngram.index[ngram_hash] {
-			counters[tok] += 1
+	for _, ngramHash := range inputNgrams {
+		for tok := range ngram.index[ngramHash] {
+			counters[tok]++
 		}
 	}
 	return counters
@@ -176,10 +176,10 @@ func validateThresholdValues(thresholds []float64) (float64, error) {
 	if len(thresholds) == 1 {
 		tval = thresholds[0]
 		if tval < 0.0 || tval > 1.0 {
-			return 0.0, errors.New("Threshold must be in range (0, 1)")
+			return 0.0, errors.New("threshold must be in range (0, 1)")
 		}
 	} else if len(thresholds) > 1 {
-		return 0.0, errors.New("Too many arguments")
+		return 0.0, errors.New("too many arguments")
 	}
 	return tval, nil
 }
@@ -239,7 +239,7 @@ func (ngram *NGramIndex) BestMatch(input string, threshold ...float64) (*SearchR
 		return nil, error
 	}
 	if len(variants) == 0 {
-		return nil, errors.New("No matches found")
+		return nil, errors.New("no matches found")
 	}
 	var result SearchResult
 	maxsim := -1.0

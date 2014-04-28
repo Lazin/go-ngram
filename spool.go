@@ -36,7 +36,7 @@ func (pool *stringPool) Append(s string) (TokenID, error) {
 // ReadAt converts token ID back to string.
 func (pool *stringPool) ReadAt(index TokenID) (string, error) {
 	if index < TokenID(0) || index >= TokenID(len(pool.items)) {
-		return "", errors.New("Index out of range")
+		return "", errors.New("index out of range")
 	}
 	item := pool.items[int(index)]
 	compressed := pool.buffer.Bytes()[item.begin:item.end]
