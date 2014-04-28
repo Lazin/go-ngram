@@ -39,7 +39,7 @@ func Test_searching(t *testing.T) {
 	if len(results) != 1 {
 		t.Error("len(results) != 1")
 	}
-	if results[0].Similarity != 1.0 && results[0].TokenId != 0 {
+	if results[0].Similarity != 1.0 && results[0].TokenID != 0 {
 		t.Error("Bad result")
 	}
 	results, error = index.Search("12345")
@@ -50,7 +50,7 @@ func Test_searching(t *testing.T) {
 	if error != nil {
 		t.Error(error)
 	}
-	if result.TokenId != 0 {
+	if result.TokenID != 0 {
 		t.Error("BestMatch doesn't work as expected")
 	}
 }

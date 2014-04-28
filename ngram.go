@@ -12,11 +12,12 @@ const defaultPad = "$"
 
 const defaultN = 3
 
-type TokenId int
+// Token ID
+type TokenID int
 
-type nGramValue map[TokenId]int
+type nGramValue map[TokenID]int
 
-// N-gram index, can be initialized by default (zeroed) or created with "NewNgramIndex"
+// NGramIndex can be initialized by default (zeroed) or created with "NewNgramIndex"
 type NGramIndex struct {
 	pad   string
 	n     int
@@ -25,37 +26,37 @@ type NGramIndex struct {
 	warp  float64
 }
 
-// Search result, contains token id and similarity - value in range from 0.0 to 1.0
+// SearchResult contains token id and similarity - value in range from 0.0 to 1.0
 type SearchResult struct {
-	TokenId    TokenId
+	TokenID    TokenID
 	Similarity float64
 }
 
-func (ngram *NGramIndex) split_input(str string) ([]uint32, error) {
+func (ngram *NGramIndex) splitInput(str string) ([]uint32, error) {
 	if len(str) == 0 {
 		return nil, errors.New("Empty string")
 	}
 	pad := ngram.pad
 	n := ngram.n
 	input := pad + str + pad
-	prev_indexes := make([]int, maxN)
+	prevIndexes := make([]int, maxN)
 	counter := 0
 	results := make([]uint32, 0)
 
 	for index, _ := range input {
 		counter++
 		if counter > n {
-			top := prev_indexes[(counter-n)%len(prev_indexes)]
+			top := prevIndexes[(counter-n)%len(prevIndexes)]
 			substr := input[top:index]
 			hash := mmh3.Hash32([]byte(substr))
 			results = append(results, hash)
 		}
-		prev_indexes[counter%len(prev_indexes)] = index
+		prevIndexes[counter%len(prevIndexes)] = index
 	}
 
 	for i := n - 1; i > 1; i-- {
 		if len(input) >= i {
-			top := prev_indexes[(len(input)-i)%len(prev_indexes)]
+			top := prevIndexes[(len(input)-i)%len(prevIndexes)]
 			substr := input[top:]
 			hash := mmh3.Hash32([]byte(substr))
 			results = append(results, hash)
@@ -90,23 +91,23 @@ type warpArgTrait struct {
 	warp float64
 }
 
-// This function must be used to pass padding character to NGramIndex c-tor
+// SetPad must be used to pass padding character to NGramIndex c-tor
 func SetPad(c rune) padArgTrait {
 	return padArgTrait{pad: c}
 }
 
-// This function must be used to pass N (gram size) to NGramIndex c-tor
+// SetN must be used to pass N (gram size) to NGramIndex c-tor
 func SetN(n int) nArgTrait {
 	return nArgTrait{n: n}
 }
 
-// This function must be used to pass warp to NGramIndex c-tor
+// SetWarp must be used to pass warp to NGramIndex c-tor
 func SetWarp(warp float64) warpArgTrait {
 	return warpArgTrait{warp: warp}
 }
 
-// N-gram index c-tor. In most cases must be used withot parameters.
-// You can pass parameters to c-tor using functions SetPad and SetN.
+// NewNGramIndex is N-gram index c-tor. In most cases must be used withot parameters.
+// You can pass parameters to c-tor using functions SetPad, SetWarp and SetN.
 func NewNGramIndex(args ...interface{}) (*NGramIndex, error) {
 	ngram := new(NGramIndex)
 	for _, arg := range args {
@@ -132,11 +133,11 @@ func NewNGramIndex(args ...interface{}) (*NGramIndex, error) {
 
 // Add token to index. Function returns token id, this id can be converted
 // to string with function "GetString".
-func (ngram *NGramIndex) Add(input string) (TokenId, error) {
+func (ngram *NGramIndex) Add(input string) (TokenID, error) {
 	if ngram.index == nil {
 		ngram.init()
 	}
-	results, error := ngram.split_input(input)
+	results, error := ngram.splitInput(input)
 	if error != nil {
 		return -1, error
 	}
@@ -146,7 +147,7 @@ func (ngram *NGramIndex) Add(input string) (TokenId, error) {
 	}
 	for _, hash := range results {
 		if ngram.index[hash] == nil {
-			ngram.index[hash] = make(map[TokenId]int)
+			ngram.index[hash] = make(map[TokenID]int)
 		}
 		// insert string and counter
 		ngram.index[hash][ixstr]++
@@ -155,13 +156,13 @@ func (ngram *NGramIndex) Add(input string) (TokenId, error) {
 }
 
 // Converts token-id to string.
-func (ngram *NGramIndex) GetString(id TokenId) (string, error) {
+func (ngram *NGramIndex) GetString(id TokenID) (string, error) {
 	return ngram.spool.ReadAt(id)
 }
 
-// Map matched tokens to the number of ngrams, shared with input string
-func (ngram *NGramIndex) count_ngrams(input_ngrams []uint32) map[TokenId]int {
-	counters := make(map[TokenId]int)
+// countNgrams maps matched tokens to the number of ngrams, shared with input string
+func (ngram *NGramIndex) countNgrams(input_ngrams []uint32) map[TokenID]int {
+	counters := make(map[TokenID]int)
 	for _, ngram_hash := range input_ngrams {
 		for tok, _ := range ngram.index[ngram_hash] {
 			counters[tok] += 1
@@ -170,7 +171,7 @@ func (ngram *NGramIndex) count_ngrams(input_ngrams []uint32) map[TokenId]int {
 	return counters
 }
 
-func validate_threshold_values(thresholds []float64) (float64, error) {
+func validateThresholdValues(thresholds []float64) (float64, error) {
 	var tval float64
 	if len(thresholds) == 1 {
 		tval = thresholds[0]
@@ -184,15 +185,15 @@ func validate_threshold_values(thresholds []float64) (float64, error) {
 }
 
 func (ngram *NGramIndex) match(input string, tval float64) ([]SearchResult, error) {
-	input_ngrams, error := ngram.split_input(input)
+	inputNgrams, error := ngram.splitInput(input)
 	if error != nil {
 		return nil, error
 	}
 	output := make([]SearchResult, 0)
-	token_count := ngram.count_ngrams(input_ngrams)
-	for token, count := range token_count {
+	tokenCount := ngram.countNgrams(inputNgrams)
+	for token, count := range tokenCount {
 		var sim float64
-		allngrams := float64(len(input_ngrams))
+		allngrams := float64(len(inputNgrams))
 		matchngrams := float64(count)
 		if ngram.warp == 1.0 {
 			sim = matchngrams / allngrams
@@ -202,7 +203,7 @@ func (ngram *NGramIndex) match(input string, tval float64) ([]SearchResult, erro
 			sim /= math.Pow(allngrams, ngram.warp)
 		}
 		if sim >= tval {
-			res := SearchResult{Similarity: sim, TokenId: token}
+			res := SearchResult{Similarity: sim, TokenID: token}
 			output = append(output, res)
 		}
 	}
@@ -218,7 +219,7 @@ func (ngram *NGramIndex) Search(input string, threshold ...float64) ([]SearchRes
 	if ngram.index == nil {
 		ngram.init()
 	}
-	tval, error := validate_threshold_values(threshold)
+	tval, error := validateThresholdValues(threshold)
 	if error != nil {
 		return nil, error
 	}
@@ -229,7 +230,7 @@ func (ngram *NGramIndex) BestMatch(input string, threshold ...float64) (*SearchR
 	if ngram.index == nil {
 		ngram.init()
 	}
-	tval, error := validate_threshold_values(threshold)
+	tval, error := validateThresholdValues(threshold)
 	if error != nil {
 		return nil, error
 	}
