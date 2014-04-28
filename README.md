@@ -1,7 +1,7 @@
 go-ngram
 ========
 
-N-Gram index
+Ngram index for Go.
 
 ## Key features
 
@@ -23,3 +23,4 @@ resultsList, err := index.Search("world")
 
 * Smoothing functions (Laplace etc)
 
+[![GoDoc](https://godoc.org/github.com/Lazin/go-ngram?status.png)](https://godoc.org/github.com/Lazin/go-ngram)
