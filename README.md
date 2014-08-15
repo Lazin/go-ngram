@@ -24,4 +24,7 @@ resultsList, err := index.Search("world")
 * Smoothing functions (Laplace etc)
 
 [![GoDoc](https://godoc.org/github.com/Lazin/go-ngram?status.png)](https://godoc.org/github.com/Lazin/go-ngram)
-[![Coverage Status](https://coveralls.io/repos/Lazin/go-ngram/badge.png)](https://coveralls.io/r/Lazin/go-ngram)
+
+[![docs examples](https://sourcegraph.com/api/repos/github.com/Lazin/go-ngram/.badges/docs-examples.png)](https://sourcegraph.com/github.com/Lazin/go-ngram)
+
+[![library users](https://sourcegraph.com/api/repos/github.com/Lazin/go-ngram/.badges/library-users.png)](https://sourcegraph.com/github.com/Lazin/go-ngram)
