@@ -1,7 +1,7 @@
 go-ngram [![Build Status](https://travis-ci.org/Lazin/go-ngram.svg)](https://travis-ci.org/Lazin/go-ngram)
 ========
 
-Ngram index for Go.
+N-gram index for Go.
 
 ## Key features
 
