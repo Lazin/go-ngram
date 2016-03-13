@@ -81,10 +81,6 @@ func (ngram *NGramIndex) init() {
 
 type Option func(*NGramIndex) error
 
-type warpArgTrait struct {
-	warp float64
-}
-
 // SetPad must be used to pass padding character to NGramIndex c-tor
 func SetPad(c rune) Option {
 	return func(ngram *NGramIndex) error {
@@ -110,7 +106,7 @@ func SetWarp(warp float64) Option {
 		if warp < 0.0 || warp > 1.0 {
 			return errors.New("bad 'warp' value for n-gram index")
 		}
-		// TODO affect ngram
+		ngram.warp = warp
 		return nil
 	}
 }
