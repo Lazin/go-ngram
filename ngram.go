@@ -79,52 +79,45 @@ func (ngram *NGramIndex) init() {
 	}
 }
 
-type padArgTrait struct {
-	pad rune
-}
-
-type nArgTrait struct {
-	n int
-}
-
-type warpArgTrait struct {
-	warp float64
-}
+type Option func(*NGramIndex) error
 
 // SetPad must be used to pass padding character to NGramIndex c-tor
-func SetPad(c rune) padArgTrait {
-	return padArgTrait{pad: c}
+func SetPad(c rune) Option {
+	return func(ngram *NGramIndex) error {
+		ngram.pad = string(c)
+		return nil
+	}
 }
 
 // SetN must be used to pass N (gram size) to NGramIndex c-tor
-func SetN(n int) nArgTrait {
-	return nArgTrait{n: n}
+func SetN(n int) Option {
+	return func(ngram *NGramIndex) error {
+		if n < 2 || n > maxN {
+			return errors.New("bad 'n' value for n-gram index")
+		}
+		ngram.n = n
+		return nil
+	}
 }
 
 // SetWarp must be used to pass warp to NGramIndex c-tor
-func SetWarp(warp float64) warpArgTrait {
-	return warpArgTrait{warp: warp}
+func SetWarp(warp float64) Option {
+	return func(ngram *NGramIndex) error {
+		if warp < 0.0 || warp > 1.0 {
+			return errors.New("bad 'warp' value for n-gram index")
+		}
+		ngram.warp = warp
+		return nil
+	}
 }
 
 // NewNGramIndex is N-gram index c-tor. In most cases must be used withot parameters.
 // You can pass parameters to c-tor using functions SetPad, SetWarp and SetN.
-func NewNGramIndex(args ...interface{}) (*NGramIndex, error) {
+func NewNGramIndex(opts ...Option) (*NGramIndex, error) {
 	ngram := new(NGramIndex)
-	for _, arg := range args {
-		switch i := arg.(type) {
-		case padArgTrait:
-			ngram.pad = string(i.pad)
-		case nArgTrait:
-			if i.n < 2 || i.n > maxN {
-				return nil, errors.New("bad 'n' value for n-gram index")
-			}
-			ngram.n = i.n
-		case warpArgTrait:
-			if i.warp < 0.0 || i.warp > 1.0 {
-				return nil, errors.New("bad 'warp' value for n-gram index")
-			}
-		default:
-			return nil, errors.New("invalid argument")
+	for _, opt := range opts {
+		if err := opt(ngram); err != nil {
+			return nil, err
 		}
 	}
 	ngram.init()
