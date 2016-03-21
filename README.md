@@ -14,7 +14,7 @@ N-gram index for Go.
 ## Usage
 
 ```go
-index := ngram.NewNGramIndex(ngram.SetN(3))
+index, err := ngram.NewNGramIndex(ngram.SetN(3))
 tokenId, err := index.Add("hello") 
 str, err := index.GetString(tokenId)  // str == "hello"
 resultsList, err := index.Search("world")
