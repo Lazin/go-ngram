@@ -5,7 +5,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/reusee/mmh3"
+	"github.com/spaolacci/murmur3"
 )
 
 const (
@@ -52,7 +52,7 @@ func (ngram *NGramIndex) splitInput(str string) ([]uint32, error) {
 		if counter > n {
 			top := prevIndexes[(counter-n)%len(prevIndexes)]
 			substr := input[top:index]
-			hash := mmh3.Hash32([]byte(substr))
+			hash := murmur3.Sum32([]byte(substr))
 			results = append(results, hash)
 		}
 		prevIndexes[counter%len(prevIndexes)] = index
@@ -62,7 +62,7 @@ func (ngram *NGramIndex) splitInput(str string) ([]uint32, error) {
 		if len(input) >= i {
 			top := prevIndexes[(len(input)-i)%len(prevIndexes)]
 			substr := input[top:]
-			hash := mmh3.Hash32([]byte(substr))
+			hash := murmur3.Sum32([]byte(substr))
 			results = append(results, hash)
 		}
 	}
