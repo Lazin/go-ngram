@@ -2,15 +2,17 @@ package ngram
 
 import (
 	"errors"
-	"github.com/reusee/mmh3"
 	"math"
+	"sync"
+
+	"github.com/spaolacci/murmur3"
 )
 
-const maxN = 8
-
-const defaultPad = "$"
-
-const defaultN = 3
+const (
+	maxN       = 8
+	defaultPad = "$"
+	defaultN   = 3
+)
 
 // TokenID is just id of the token
 type TokenID int
@@ -24,6 +26,8 @@ type NGramIndex struct {
 	spool stringPool
 	index map[uint32]nGramValue
 	warp  float64
+
+	sync.RWMutex
 }
 
 // SearchResult contains token id and similarity - value in range from 0.0 to 1.0
@@ -40,25 +44,25 @@ func (ngram *NGramIndex) splitInput(str string) ([]uint32, error) {
 	n := ngram.n
 	input := pad + str + pad
 	prevIndexes := make([]int, maxN)
-	counter := 0
+	var counter int
 	results := make([]uint32, 0)
 
 	for index := range input {
 		counter++
 		if counter > n {
-			top := prevIndexes[(counter-n)%len(prevIndexes)]
+			top := prevIndexes[(counter-n)%maxN]
 			substr := input[top:index]
-			hash := mmh3.Hash32([]byte(substr))
+			hash := murmur3.Sum32([]byte(substr))
 			results = append(results, hash)
 		}
-		prevIndexes[counter%len(prevIndexes)] = index
+		prevIndexes[counter%maxN] = index
 	}
 
 	for i := n - 1; i > 1; i-- {
 		if len(input) >= i {
-			top := prevIndexes[(len(input)-i)%len(prevIndexes)]
+			top := prevIndexes[(len(input)-i)%maxN]
 			substr := input[top:]
-			hash := mmh3.Hash32([]byte(substr))
+			hash := murmur3.Sum32([]byte(substr))
 			results = append(results, hash)
 		}
 	}
@@ -67,6 +71,9 @@ func (ngram *NGramIndex) splitInput(str string) ([]uint32, error) {
 }
 
 func (ngram *NGramIndex) init() {
+	ngram.Lock()
+	defer ngram.Unlock()
+
 	ngram.index = make(map[uint32]nGramValue)
 	if ngram.pad == "" {
 		ngram.pad = defaultPad
@@ -139,11 +146,13 @@ func (ngram *NGramIndex) Add(input string) (TokenID, error) {
 		return -1, error
 	}
 	for _, hash := range results {
+		ngram.Lock()
 		if ngram.index[hash] == nil {
 			ngram.index[hash] = make(map[TokenID]int)
 		}
 		// insert string and counter
 		ngram.index[hash][ixstr]++
+		ngram.Unlock()
 	}
 	return ixstr, nil
 }
@@ -157,9 +166,11 @@ func (ngram *NGramIndex) GetString(id TokenID) (string, error) {
 func (ngram *NGramIndex) countNgrams(inputNgrams []uint32) map[TokenID]int {
 	counters := make(map[TokenID]int)
 	for _, ngramHash := range inputNgrams {
+		ngram.RLock()
 		for tok := range ngram.index[ngramHash] {
 			counters[tok]++
 		}
+		ngram.RUnlock()
 	}
 	return counters
 }
